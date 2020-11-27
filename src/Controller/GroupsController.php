@@ -12,6 +12,12 @@ use App\Controller\AppController;
  */
 class GroupsController extends AppController
 {
+    public function initialize()
+    {
+        parent::initialize();
+        $this->loadComponent('RequestHandler');
+    }
+
     /**
      * Index method
      *
@@ -19,31 +25,36 @@ class GroupsController extends AppController
      */
     public function index()
     {
-        $groups = $this->paginate($this->Groups);
+    
+        $this->viewBuilder()->setLayout(false);
+        $groups = $this->Groups->find('all');
+        $this->set(array(
+            'groups' => $groups,
+            '_serialize' => array('groups')
+        ));
 
-        $this->set(compact('groups'));
     }
 
     /**
      * View method
      *
-     * @param string|null $id Group id.
+     * @param string|null $id group id.
      * @return \Cake\Http\Response|null
      * @throws \Cake\Datasource\Exception\RecordNotFoundException When record not found.
      */
     public function view($id = null)
     {
-        $group = $this->Groups->get($id, [
-            'contain' => [],
-        ]);
-        $members = $this->paginate('members', [
-            'conditions' => [
-                'group_id' => $id
-            ]
-        ]);
+        $group = $this->Groups->get($id);
+        // $members = $this->Groups->Members->get([
+        //     'conditions' => [
+        //         'group_id' => $id
+        //     ]
+        // ]);
 
-        $this->set('group', $group);
-        $this->set( 'members', $members);
+        $this->set([
+            'group' => $group,
+            '_serialize' => ['group']
+        ]);
     }
 
     /**
@@ -53,73 +64,62 @@ class GroupsController extends AppController
      */
     public function add()
     {
-        try {
-            $group = $this->Groups->newEntity();
-            if ($this->request->is('post')) {
-                $group = $this->Groups->patchEntity($group, $this->request->getData());
-                if ($this->Groups->save($group)) {
-                    $this->Flash->success(__('The group has been saved.'));
-    
-                    return $this->redirect(['action' => 'index']);
-                }
-                $this->Flash->error(__('The group could not be saved. Please, try again.'));
-            }
-            $this->set(compact('group'));
-
-        } catch (\Throwable $th) {
-            $this->Flash->error(__('Something went wrong. Please, try again.'));
-            return $this->redirect(['action' => 'add']);
+        $this->request->allowMethod(['post', 'put']);
+        $group = $this->Groups->newEntity($this->request->getData());
+        if ($this->Groups->save($group)) {
+            $message = 'Successfully Saved';
+        } else {
+            $message = 'Error occured';
         }
+        $this->set([
+            'message' => $message,
+            'group' => $group,
+            '_serialize' => ['message', 'group']
+        ]);
     }
 
     /**
      * Edit method
      *
-     * @param string|null $id Group id.
+     * @param string|null $id group id.
      * @return \Cake\Http\Response|null Redirects on successful edit, renders view otherwise.
      * @throws \Cake\Datasource\Exception\RecordNotFoundException When record not found.
      */
     public function edit($id = null)
     {
-        try {
-            $group = $this->Groups->get($id, [
-                'contain' => [],
-            ]);
-            if ($this->request->is(['patch', 'post', 'put'])) {
-                $group = $this->Groups->patchEntity($group, $this->request->getData());
-                if ($this->Groups->save($group)) {
-                    $this->Flash->success(__('The group has been saved.'));
-    
-                    return $this->redirect(['action' => 'index']);
-                }
-                $this->Flash->error(__('The group could not be saved. Please, try again.'));
-            }
-            $this->set(compact('group'));
-
-        } catch (\Throwable $th) {
-            $this->Flash->error(__('Something went wrong. Please, try again.'));
-            return $this->redirect(['action' => 'index']);
+        $this->request->allowMethod(['patch', 'post', 'put']);
+        $group = $this->Groups->get($id);
+        $group = $this->Groups->patchEntity($group, $this->request->getData());
+        if ($this->Groups->save($group)) {
+            $message = 'Successfully Saved';
+        } else {
+            $message = 'Error Occured';
         }
-        
+        $this->set([
+            'message' => $message,
+            '_serialize' => ['message']
+        ]);
+
     }
 
     /**
      * Delete method
      *
-     * @param string|null $id Group id.
+     * @param string|null $id group id.
      * @return \Cake\Http\Response|null Redirects to index.
      * @throws \Cake\Datasource\Exception\RecordNotFoundException When record not found.
      */
     public function delete($id = null)
     {
-        $this->request->allowMethod(['post', 'delete']);
+        $this->request->allowMethod(['delete']);
         $group = $this->Groups->get($id);
-        if ($this->Groups->delete($group)) {
-            $this->Flash->success(__('The group has been deleted.'));
-        } else {
-            $this->Flash->error(__('The group could not be deleted. Please, try again.'));
+        $message = 'Deleted';
+        if (!$this->Groups->delete($group)) {
+            $message = 'Error Occured';
         }
-
-        return $this->redirect(['action' => 'index']);
+        $this->set([
+            'message' => $message,
+            '_serialize' => ['message']
+        ]);
     }
 }

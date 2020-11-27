@@ -12,6 +12,13 @@ use App\Controller\AppController;
  */
 class MembersController extends AppController
 {
+
+    public function initialize()
+    {
+        parent::initialize();
+        $this->loadComponent('RequestHandler');
+    }
+
     /**
      * Index method
      *
@@ -19,12 +26,14 @@ class MembersController extends AppController
      */
     public function index()
     {
-        $this->paginate = [
-            'contain' => ['Groups'],
-        ];
-        $members = $this->paginate($this->Members);
+    
+        $this->viewBuilder()->setLayout(false);
+        $members = $this->Members->find('all');
+        $this->set(array(
+            'members' => $members,
+            '_serialize' => array('members')
+        ));
 
-        $this->set(compact('members'));
     }
 
     /**
@@ -40,7 +49,10 @@ class MembersController extends AppController
             'contain' => ['Groups'],
         ]);
 
-        $this->set('member', $member);
+        $this->set([
+            'member' => $member,
+            '_serialize' => ['member']
+        ]);
     }
 
     /**
@@ -50,23 +62,19 @@ class MembersController extends AppController
      */
     public function add()
     {
-        try {
-            $member = $this->Members->newEntity();
-            if ($this->request->is('post')) {
-                $member = $this->Members->patchEntity($member, $this->request->getData());
-                if ($this->Members->save($member)) {
-                    $this->Flash->success(__('The member has been saved.'));
-    
-                    return $this->redirect(['action' => 'index']);
-                }
-               $this->Flash->error(__('The member could not be saved. Please, try again.'));
-            }
-            $groups = $this->Members->Groups->find('list', ['limit' => 200]);
-            $this->set(compact('member', 'groups'));
-        } catch (\Throwable $th) {
-            $this->Flash->error(__('The member could not be saved. Please, check your input and try again.'));
-            return $this->redirect(['action' => 'add']);
-        }
+    $this->viewBuilder()->setLayout(false);
+    $this->request->allowMethod(['post', 'put']);
+    $member = $this->Members->newEntity($this->request->getData());
+    if ($this->Members->save($member)) {
+        $message = 'Successfully Saved';
+    } else {
+        $message = 'Error occured';
+    }
+    $this->set([
+        'message' => $message,
+        'member' => $member,
+        '_serialize' => ['message', 'member']
+    ]);
     }
 
     /**
@@ -78,26 +86,18 @@ class MembersController extends AppController
      */
     public function edit($id = null)
     {
-        try {
-            $member = $this->Members->get($id, [
-                'contain' => [],
-            ]);
-            if ($this->request->is(['patch', 'post', 'put'])) {
-                $member = $this->Members->patchEntity($member, $this->request->getData());
-                if ($this->Members->save($member)) {
-                    $this->Flash->success(__('The member has been saved.'));
-    
-                    return $this->redirect(['action' => 'index']);
-                }
-                $this->Flash->error(__('The member could not be saved. Please, try again.'));
-            }
-            $groups = $this->Members->Groups->find('list', ['limit' => 200]);
-            $this->set(compact('member', 'groups'));
-
-        } catch (\Throwable $th) {
-            $this->Flash->error(__('Something went wrong. Please, try again.'));
-            return $this->redirect(['action' => 'index']);
+        $this->request->allowMethod(['patch', 'post', 'put']);
+        $member = $this->Members->get($id);
+        $member = $this->Members->patchEntity($member, $this->request->getData());
+        if ($this->Members->save($member)) {
+            $message = 'Successfully Saved';
+        } else {
+            $message = 'Error Occured';
         }
+        $this->set([
+            'message' => $message,
+            '_serialize' => ['message']
+        ]);
 
     }
 
@@ -110,14 +110,15 @@ class MembersController extends AppController
      */
     public function delete($id = null)
     {
-        $this->request->allowMethod(['post', 'delete']);
+        $this->request->allowMethod(['delete']);
         $member = $this->Members->get($id);
-        if ($this->Members->delete($member)) {
-            $this->Flash->success(__('The member has been deleted.'));
-        } else {
-            $this->Flash->error(__('The member could not be deleted. Please, try again.'));
+        $message = 'Deleted';
+        if (!$this->Members->delete($member)) {
+            $message = 'Error Occured';
         }
-
-        return $this->redirect(['action' => 'index']);
+        $this->set([
+            'message' => $message,
+            '_serialize' => ['message']
+        ]);
     }
 }

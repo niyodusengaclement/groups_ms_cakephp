@@ -20,6 +20,7 @@ use Cake\Error\Middleware\ErrorHandlerMiddleware;
 use Cake\Http\BaseApplication;
 use Cake\Routing\Middleware\AssetMiddleware;
 use Cake\Routing\Middleware\RoutingMiddleware;
+use Cake\Http\Middleware\CsrfProtectionMiddleware;
 
 /**
  * Application setup class.
@@ -96,4 +97,13 @@ class Application extends BaseApplication
 
         // Load more plugins here
     }
+
+    public function routes($routes) {
+        $options = [
+            // ...
+        ];
+        $routes->registerMiddleware('csrf', new CsrfProtectionMiddleware($options));
+        parent::routes($routes);
+    }
+    
 }
